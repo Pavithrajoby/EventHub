@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Events - EventHub{% endblock %}
+
+{% block content %}
+<!-- Hero Header -->
+<section class="hero">
+    <h1 class="hero-title">Discover Extraordinary Events</h1>
+    <p class="hero-subtitle">Connect with experts, join live workshops, attend summits, and reserve your ticket in seconds.</p>
+    <div>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'signup' %}" class="btn btn-primary">
+                <i class="fa-solid fa-user-plus"></i> Join EventHub Free
+            </a>
+        {% elif user.profile.is_organizer %}
+            <a href="{% url 'event_create' %}" class="btn btn-primary">
+                <i class="fa-solid fa-calendar-plus"></i> Host an Event
+            </a>
+        {% else %}
+            <a href="#events-section" class="btn btn-primary">
+                <i class="fa-solid fa-ticket"></i> Explore &amp; Reserve Tickets
+            </a>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Filter & Controls Bar -->
+<div class="controls-bar">
+    <form method="get" action="{% url 'event_list' %}" class="search-form">
+        <div class="input-group">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Search by title, topic, or location...">
+        </div>
+        {% if selected_category %}
+            <input type="hidden" name="category" value="{{ selected_category }}">
+        {% endif %}
+        <input type="hidden" name="filter" value="{{ time_filter }}">
+        <button type="submit" class="btn btn-secondary">Search</button>
+    </form>
+
+    <div class="filter-group">
+        <a href="?filter=upcoming{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+           class="category-chip {% if time_filter == 'upcoming' %}active{% endif %}">
+            <i class="fa-solid fa-clock"></i> Upcoming
+        </a>
+        <a href="?filter=past{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+           class="category-chip {% if time_filter == 'past' %}active{% endif %}">
+            <i class="fa-solid fa-history"></i> Past Events
+        </a>
+        <a href="?filter=all{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+           class="category-chip {% if time_filter == 'all' %}active{% endif %}">
+            <i class="fa-solid fa-layer-group"></i> All
+        </a>
+    </div>
+</div>
+
+<!-- Categories Filter Pills -->
+<div class="filter-group" style="margin-bottom: 2rem; overflow-x: auto; padding-bottom: 0.5rem;">
+    <a href="?filter={{ time_filter }}{% if search_query %}&q={{ search_query }}{% endif %}" 
+       class="category-chip {% if not selected_category %}active{% endif %}">
+       All Categories
+    </a>
+    {% for cat in categories %}
+        <a href="?category={{ cat.slug }}&filter={{ time_filter }}{% if search_query %}&q={{ search_query }}{% endif %}" 
+           class="category-chip {% if selected_category == cat.slug %}active{% endif %}">
+            <i class="fa-solid {{ cat.icon }}"></i> {{ cat.name }}
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Events Grid -->
+{% if events %}
+    <div class="events-grid">
+        {% for event in events %}
+            <div class="event-card">
+                <div class="card-banner">
+                    <img src="{{ event.image_url }}" alt="{{ event.title }}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80'">
+                    <span class="category-badge">
+                        <i class="fa-solid {{ event.category.icon }}"></i> {{ event.category.name }}
+                    </span>
+                    {% if event.is_past %}
+                        <span class="status-badge status-past"><i class="fa-solid fa-flag-checkered"></i> Ended</span>
+                    {% elif event.is_full %}
+                        <span class="status-badge status-full"><i class="fa-solid fa-ban"></i> Sold Out</span>
+                    {% else %}
+                        <span class="status-badge status-open"><i class="fa-solid fa-ticket"></i> {{ event.seats_available }} seats left</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    <h3 class="card-title">{{ event.title }}</h3>
+                    
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <i class="fa-regular fa-calendar-check"></i>
+                            <span>{{ event.start_time|date:"D, M d, Y • g:i A" }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <span>{{ event.location|truncatechars:35 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Occupancy Bar -->
+                    <div class="occupancy-wrapper">
+                        <div class="occupancy-header">
+                            <span>Capacity</span>
+                            <span>{{ event.registered_count }} / {{ event.capacity }}</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-bar {% if event.is_full %}full{% elif event.occupancy_percentage > 75 %}warning{% endif %}" 
+                                 style="--progress: {{ event.occupancy_percentage }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <span style="font-size: 0.82rem; color: var(--text-dim);">
+                            By <strong>{{ event.organizer.username }}</strong>
+                        </span>
+                        <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-primary btn-sm">
+                            Details <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+        <h3 class="empty-title">No events found</h3>
+        <p class="empty-desc">We couldn't find any events matching your current search or filter parameters. Try adjusting your query or create a new event!</p>
+        <a href="{% url 'event_list' %}" class="btn btn-secondary">Clear Filters</a>
+    </div>
+{% endif %}
+
+{% endblock %}

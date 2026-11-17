@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EventHub - Experience & Connect{% endblock %}</title>
+    <meta name="description" content="Discover, organize, and register for tech conferences, workshops, concerts, and community meetups easily.">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{% url 'event_list' %}" class="brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span>EventHub</span>
+            </a>
+
+            <nav>
+                <ul class="nav-links">
+                    <li>
+                        <a href="{% url 'event_list' %}" class="nav-link {% if request.resolver_match.url_name == 'event_list' %}active{% endif %}">
+                            <i class="fa-solid fa-compass"></i> Explore
+                        </a>
+                    </li>
+
+                    {% if user.is_authenticated %}
+                        {% if user.profile.is_organizer %}
+                            <li>
+                                <a href="{% url 'event_create' %}" class="nav-link {% if request.resolver_match.url_name == 'event_create' %}active{% endif %}">
+                                    <i class="fa-solid fa-plus-circle"></i> Create Event
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'qr_scanner' %}" class="nav-link {% if request.resolver_match.url_name == 'qr_scanner' %}active{% endif %}">
+                                    <i class="fa-solid fa-qrcode"></i> Scan Tickets
+                                </a>
+                            </li>
+                        {% endif %}
+                        <li>
+                            <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                                <i class="fa-solid fa-gauge"></i> Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <span class="user-badge">
+                                <i class="fa-solid fa-user"></i> {{ user.username }} ({{ user.profile.get_role_display|default:'Admin' }})
+                            </span>
+                        </li>
+                        <li>
+                            <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary btn-sm">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li>
+                            <a href="{% url 'login' %}" class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}">
+                                Log In
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'signup' %}" class="btn btn-primary btn-sm">
+                                Sign Up
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-wrapper">
+        <!-- Messages -->
+        {% if messages %}
+            <div class="alerts-container">
+                {% for message in messages %}
+                    <div class="alert alert-{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% else %}info{% endif %}">
+                        <div>
+                            {% if message.tags == 'success' %}
+                                <i class="fa-solid fa-circle-check" style="margin-right:0.5rem;"></i>
+                            {% elif message.tags == 'error' %}
+                                <i class="fa-solid fa-circle-exclamation" style="margin-right:0.5rem;"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info" style="margin-right:0.5rem;"></i>
+                            {% endif %}
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="nav-container" style="justify-content: center; flex-direction: column; gap: 0.5rem;">
+            <p>&copy; 2026 EventHub Management Platform. Crafted with Django, HTML5 &amp; CSS3.</p>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EventHub{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; font-weight: 800; color: #fff;">User Dashboard</h1>
+    <p style="color: var(--text-muted);">Manage your active ticket registrations and organized events.</p>
+</div>
+
+<!-- Stats Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 50px; height: 50px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.15); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+            <i class="fa-solid fa-ticket"></i>
+        </div>
+        <div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #fff;">{{ registrations.count }}</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted);">My Registrations</div>
+        </div>
+    </div>
+
+    {% if user.profile.is_organizer %}
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+        <div style="width: 50px; height: 50px; border-radius: var(--radius-md); background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div>
+            <div style="font-size: 1.8rem; font-weight: 800; color: #fff;">{{ organized_events.count }}</div>
+            <div style="font-size: 0.88rem; color: var(--text-muted);">Hosted Events</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Section 1: Registered Events -->
+<section style="margin-bottom: 3rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.3rem; font-weight: 700; color: #fff;">
+            <i class="fa-solid fa-ticket" style="color: var(--primary); margin-right: 0.5rem;"></i> My Registered Tickets
+        </h2>
+    </div>
+
+    {% if registrations %}
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Event Title</th>
+                        <th>Date &amp; Time</th>
+                        <th>Location</th>
+                        <th>Tickets</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in registrations %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'event_detail' slug=reg.event.slug %}" style="font-weight: 600; color: #fff;">
+                                    {{ reg.event.title }}
+                                </a>
+                            </td>
+                            <td>{{ reg.event.start_time|date:"M d, Y • g:i A" }}</td>
+                            <td>{{ reg.event.location|truncatechars:30 }}</td>
+                            <td>
+                                <span class="category-badge" style="position: static; color: var(--accent-emerald);">
+                                    {{ reg.tickets_count }} Pass{% if reg.tickets_count > 1 %}es{% endif %}
+                                </span>
+                                {% if reg.is_used %}
+                                <span class="category-badge" style="position: static; color: #10b981;">
+                                    <i class="fa-solid fa-user-check"></i> Checked In
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'event_detail' slug=reg.event.slug %}" class="btn btn-secondary btn-sm">
+                                    View Ticket
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state" style="padding: 2.5rem 1.5rem;">
+            <p class="empty-title">No Active Registrations</p>
+            <p class="empty-desc">You haven't signed up for any events yet. Explore upcoming meetups and claim your free pass!</p>
+            <a href="{% url 'event_list' %}" class="btn btn-primary btn-sm">Browse Events</a>
+        </div>
+    {% endif %}
+</section>
+
+{% if user.profile.is_organizer %}
+<!-- Section 2: Organized Events -->
+<section>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="font-size: 1.3rem; font-weight: 700; color: #fff;">
+            <i class="fa-solid fa-bullhorn" style="color: var(--accent-purple); margin-right: 0.5rem;"></i> Events You Organize
+        </h2>
+        <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus"></i> Host New Event
+        </a>
+    </div>
+
+    {% if organized_events %}
+        <div class="data-table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Event Title</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Occupancy</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in organized_events %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'event_detail' slug=event.slug %}" style="font-weight: 600; color: #fff;">
+                                    {{ event.title }}
+                                </a>
+                            </td>
+                            <td>{{ event.category.name }}</td>
+                            <td>{{ event.start_time|date:"M d, Y" }}</td>
+                            <td>
+                                <strong>{{ event.registered_count }}</strong> / {{ event.capacity }}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.4rem;">
+                                    <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary btn-sm" title="View">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'event_edit' slug=event.slug %}" class="btn btn-secondary btn-sm" title="Edit">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <a href="{% url 'event_delete' slug=event.slug %}" class="btn btn-danger btn-sm" title="Delete">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state" style="padding: 2.5rem 1.5rem;">
+            <p class="empty-title">No Events Created Yet</p>
+            <p class="empty-desc">You haven't hosted any events. Start building your community by creating an event now.</p>
+            <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">Create Event</a>
+        </div>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

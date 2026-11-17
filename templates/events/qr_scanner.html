@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket Scanner - EventHub{% endblock %}
+
+{% block content %}
+<div style="max-width: 480px; margin: 0 auto; text-align: center;">
+    <h1 style="font-size: 1.8rem; font-weight: 800; color: #fff;">
+        <i class="fa-solid fa-qrcode" style="color: var(--primary);"></i> Ticket Scanner
+    </h1>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Scan the attendee's QR code to check them in.</p>
+
+    <div id="scan-result"
+        style="{% if not message %}display: none; {% endif %}border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; border: 2px solid {% if valid %}#10b981{% else %}#ef4444{% endif %}; background: {% if valid %}rgba(16, 185, 129, 0.15){% else %}rgba(239, 68, 68, 0.15){% endif %};">
+        <i id="scan-result-icon" class="fa-solid {% if valid %}fa-circle-check{% else %}fa-circle-xmark{% endif %}"
+            style="font-size: 2.5rem; color: {% if valid %}#10b981{% else %}#ef4444{% endif %};"></i>
+        <h3 id="scan-result-message" style="color: #fff; margin-top: 0.5rem;">{{ message }}</h3>
+        <p id="scan-result-details" style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;"></p>
+    </div>
+
+    <div id="reader" style="width: 100%; max-width: 350px; margin: 0 auto; background: #fff; border-radius: var(--radius-md);"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    (function () {
+        const RESUME_DELAY_MS = 3000;
+        const resultBox = document.getElementById('scan-result');
+        const resultIcon = document.getElementById('scan-result-icon');
+        const resultMessage = document.getElementById('scan-result-message');
+        const resultDetails = document.getElementById('scan-result-details');
+        let busy = false;
+
+        function showResult(data) {
+            const color = data.valid ? '#10b981' : '#ef4444';
+            resultBox.style.display = 'block';
+            resultBox.style.borderColor = color;
+            resultBox.style.background = data.valid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+            resultIcon.className = 'fa-solid ' + (data.valid ? 'fa-circle-check' : 'fa-circle-xmark');
+            resultIcon.style.color = color;
+            resultMessage.textContent = data.message;
+            resultDetails.textContent = data.attendee
+                ? data.attendee + ' • ' + data.event + ' • ' + data.tickets_count + ' ticket(s) • ' + data.ticket_id
+                : '';
+        }
+
+        function onScanSuccess(decodedText) {
+            // html5-qrcode fires many times per second; handle one scan at a time.
+            if (busy) return;
+            busy = true;
+            scanner.pause(true);
+
+            fetch("{% url 'verify_ticket' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: 'ticket_id=' + encodeURIComponent(decodedText)
+            })
+                .then(function (res) { return res.json(); })
+                .then(showResult)
+                .catch(function () {
+                    showResult({ valid: false, message: 'Could not verify ticket. Please try again.' });
+                })
+                .finally(function () {
+                    setTimeout(function () {
+                        busy = false;
+                        scanner.resume();
+                    }, RESUME_DELAY_MS);
+                });
+        }
+
+        const scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 });
+        scanner.render(onScanSuccess);
+    })();
+</script>
+{% endblock %}
